@@ -83,15 +83,16 @@ class Card:
         valor_rect = texto_valor.get_rect(center=self.rect.center)
         tela.blit(texto_valor, valor_rect)
         
-        # Símbolo/emoji (abaixo do valor)
+        # Símbolo ASCII (abaixo do valor)
         simbolos = {
-            self.ATAQUE: "⚔",
-            self.DEFESA: "🛡",
-            self.CURA: "❤"
+            self.ATAQUE: "ATK",
+            self.DEFESA: "DEF",
+            self.CURA: "HP+"
         }
         simbolo = simbolos.get(self.tipo, "?")
-        texto_simbolo = self.fonte_valor.render(simbolo, True, self.cor_texto)
-        simbolo_rect = texto_simbolo.get_rect(center=(self.rect.centerx, self.rect.bottom - 35))
+        fonte_simbolo = pygame.font.Font(None, 28)
+        texto_simbolo = fonte_simbolo.render(simbolo, True, self.cor_texto)
+        simbolo_rect = texto_simbolo.get_rect(center=(self.rect.centerx, self.rect.bottom - 30))
         tela.blit(texto_simbolo, simbolo_rect)
     
     def __str__(self):
