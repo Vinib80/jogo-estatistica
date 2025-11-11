@@ -111,9 +111,17 @@ class JogoDuelo:
             Card.CURA: (50, 200, 80)
         }
         
+        # Símbolos das cartas (igual às cartas do jogo)
+        simbolos = {
+            Card.ATAQUE: "ATK",
+            Card.DEFESA: "DEF",
+            Card.CURA: "HP+"
+        }
+        
         for tipo, quantidade in contagem.items():
             cor = cores_tipo[tipo]
-            texto = self.fonte_texto.render(f"⚫ {tipo}: {quantidade}", True, cor)
+            simbolo = simbolos[tipo]
+            texto = self.fonte_texto.render(f"[{simbolo}] {tipo}: {quantidade}", True, cor)
             self.tela.blit(texto, (x_base + 10, y_atual))
             y_atual += 30
         
