@@ -2,6 +2,7 @@ import pygame
 import sys
 from carta import Card
 from baralho import Deck
+from jogador import Player
 
 # Inicialização do Pygame
 pygame.init()
@@ -37,12 +38,14 @@ class JogoDuelo:
         # Baralho do jogo
         self.deck = Deck()
         
-        # Cartas de exemplo (para testar)
-        self.cartas_exemplo = [
-            Card(Card.ATAQUE, 100, 200),
-            Card(Card.DEFESA, 220, 200),
-            Card(Card.CURA, 340, 200)
-        ]
+        # Jogadores
+        self.ia = Player("IA", 50, 80)
+        self.jogador = Player("VOCÊ", 50, 450)
+        
+        # Distribuir cartas iniciais (3 para cada)
+        for _ in range(3):
+            self.jogador.comprar_carta(self.deck)
+            self.ia.comprar_carta(self.deck)
     
     def processar_eventos(self):
         """Processa todos os eventos do Pygame"""
@@ -149,9 +152,13 @@ class JogoDuelo:
         """Renderiza tudo na tela"""
         self.desenhar_interface()
         
-        # Desenha as cartas de exemplo
-        for carta in self.cartas_exemplo:
-            carta.desenhar(self.tela)
+        # Desenha os jogadores
+        self.ia.desenhar(self.tela)
+        self.jogador.desenhar(self.tela)
+        
+        # Desenha as mãos dos jogadores
+        self.ia.desenhar_mao(self.tela, 100, 150)
+        self.jogador.desenhar_mao(self.tela, 100, 380)
         
         pygame.display.flip()
     
