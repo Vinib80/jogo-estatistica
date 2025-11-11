@@ -40,12 +40,21 @@ class JogoDuelo:
         
         # Jogadores
         self.ia = Player("IA", 50, 80)
-        self.jogador = Player("VOCÊ", 50, 530)
+        self.jogador = Player("VOCÊ", 50, 500)
         
         # Distribuir cartas iniciais (3 para cada)
         for _ in range(3):
             self.jogador.comprar_carta(self.deck)
             self.ia.comprar_carta(self.deck)
+        
+        # Sistema de turnos
+        self.turno_jogador = True  # True = vez do jogador, False = vez da IA
+        self.fase_turno = "comprar"  # "comprar" ou "jogar"
+        self.carta_selecionada = None
+        
+        # Mensagens de feedback
+        self.mensagem = "Seu turno! Clique para comprar uma carta."
+        self.cor_mensagem = (255, 255, 100)
     
     def processar_eventos(self):
         """Processa todos os eventos do Pygame"""
@@ -55,10 +64,117 @@ class JogoDuelo:
             elif evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
                     self.rodando = False
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button == 1:  # Clique esquerdo
+                    self.processar_clique(evento.pos)
+            elif evento.type == pygame.MOUSEMOTION:
+                self.processar_hover(evento.pos)
     
     def atualizar(self):
         """Atualiza a lógica do jogo"""
-        pass
+        # Verifica se alguém morreu
+        if not self.jogador.esta_vivo():
+            self.mensagem = "VOCÊ PERDEU! A IA venceu!"
+            self.cor_mensagem = (255, 50, 50)
+        elif not self.ia.esta_vivo():
+            self.mensagem = "VOCÊ VENCEU! Parabéns!"
+            self.cor_mensagem = (50, 255, 50)
+    
+    def processar_hover(self, pos):
+        """Processa o movimento do mouse para destacar cartas"""
+        if self.turno_jogador and self.fase_turno == "jogar":
+            # Destaca cartas do jogador ao passar o mouse
+            for carta in self.jogador.mao:
+                carta.destacada = carta.contem_ponto(pos[0], pos[1])
+    
+    def processar_clique(self, pos):
+        """Processa cliques do mouse"""
+        if not self.turno_jogador:
+            return  # Não é o turno do jogador
+        
+        if self.fase_turno == "comprar":
+            # Qualquer clique compra uma carta
+            self.comprar_carta_turno()
+        elif self.fase_turno == "jogar":
+            # Verifica se clicou em alguma carta da mão
+            for i, carta in enumerate(self.jogador.mao):
+                if carta.contem_ponto(pos[0], pos[1]):
+                    self.jogar_carta_turno(i)
+                    break
+    
+    def comprar_carta_turno(self):
+        """Jogador compra uma carta no início do turno"""
+        if self.jogador.comprar_carta(self.deck):
+            self.mensagem = "Carta comprada! Agora escolha uma carta para jogar."
+            self.cor_mensagem = (100, 255, 100)
+            self.fase_turno = "jogar"
+        else:
+            self.mensagem = "Não foi possível comprar carta!"
+            self.cor_mensagem = (255, 100, 100)
+    
+    def jogar_carta_turno(self, indice):
+        """Jogador joga uma carta"""
+        carta = self.jogador.jogar_carta(indice)
+        if carta:
+            # Aplica o efeito da carta
+            self.aplicar_efeito_carta(carta, self.jogador, self.ia)
+            
+            # Passa o turno para a IA
+            self.passar_turno()
+            
+            # IA joga automaticamente
+            pygame.time.wait(500)  # Pequeno delay para visualizar
+            self.turno_ia()
+    
+    def aplicar_efeito_carta(self, carta, jogador_ativo, oponente):
+        """Aplica o efeito de uma carta"""
+        if carta.tipo == Card.ATAQUE:
+            dano = carta.valores[Card.ATAQUE]
+            dano_real = oponente.receber_dano(dano)
+            self.mensagem = f"{jogador_ativo.nome} atacou! {dano_real} de dano!"
+            self.cor_mensagem = (255, 100, 100)
+        
+        elif carta.tipo == Card.DEFESA:
+            defesa = carta.valores[Card.DEFESA]
+            jogador_ativo.adicionar_defesa(defesa)
+            self.mensagem = f"{jogador_ativo.nome} defendeu! +{defesa} de defesa!"
+            self.cor_mensagem = (100, 150, 255)
+        
+        elif carta.tipo == Card.CURA:
+            cura = carta.valores[Card.CURA]
+            cura_real = jogador_ativo.curar(cura)
+            self.mensagem = f"{jogador_ativo.nome} se curou! +{cura_real} HP!"
+            self.cor_mensagem = (100, 255, 100)
+    
+    def passar_turno(self):
+        """Passa o turno para o outro jogador"""
+        self.turno_jogador = not self.turno_jogador
+        self.fase_turno = "comprar"
+    
+    def turno_ia(self):
+        """IA joga automaticamente"""
+        if not self.ia.esta_vivo() or not self.jogador.esta_vivo():
+            return
+        
+        # IA compra uma carta
+        self.ia.comprar_carta(self.deck)
+        pygame.time.wait(300)
+        
+        # IA escolhe uma carta aleatoriamente (estratégia simples)
+        import random
+        if len(self.ia.mao) > 0:
+            indice = random.randint(0, len(self.ia.mao) - 1)
+            carta = self.ia.jogar_carta(indice)
+            
+            if carta:
+                # Aplica o efeito
+                self.aplicar_efeito_carta(carta, self.ia, self.jogador)
+                pygame.time.wait(500)
+        
+        # Volta para o turno do jogador
+        self.passar_turno()
+        self.mensagem = "Seu turno! Clique para comprar uma carta."
+        self.cor_mensagem = (255, 255, 100)
     
     def desenhar_interface(self):
         """Desenha a interface dividida do jogo"""
@@ -73,6 +189,11 @@ class JogoDuelo:
         # Título da área de jogo
         texto_jogo = self.fonte_titulo.render("CAMPO DE BATALHA", True, COR_TEXTO)
         self.tela.blit(texto_jogo, (area_jogo.x + 20, area_jogo.y + 15))
+        
+        # Mensagem de feedback do jogo
+        texto_msg = self.fonte_texto.render(self.mensagem, True, self.cor_mensagem)
+        msg_rect = texto_msg.get_rect(center=(area_jogo.centerx, area_jogo.centery))
+        self.tela.blit(texto_msg, msg_rect)
         
         # Área de Estatísticas (Direita)
         area_stats = pygame.Rect(LARGURA_JOGO + 10, 10, LARGURA_STATS - 20, ALTURA_TELA - 20)
@@ -157,8 +278,8 @@ class JogoDuelo:
         self.jogador.desenhar(self.tela)
         
         # Desenha as mãos dos jogadores
-        self.ia.desenhar_mao(self.tela, 100, 150)
-        self.jogador.desenhar_mao(self.tela, 100, 380)
+        self.ia.desenhar_mao(self.tela, 150, 150)
+        self.jogador.desenhar_mao(self.tela, 150, 380)
         
         pygame.display.flip()
     

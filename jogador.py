@@ -5,7 +5,7 @@ class Player:
     """Representa um jogador do jogo"""
     
     HP_MAXIMO = 20
-    TAMANHO_MAO = 3
+    TAMANHO_MAO = 4  # Aumentado para 4 (compra 1, depois joga 1)
     
     def __init__(self, nome, x=0, y=0):
         """
