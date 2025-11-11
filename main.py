@@ -40,7 +40,7 @@ class JogoDuelo:
         
         # Jogadores
         self.ia = Player("IA", 50, 80)
-        self.jogador = Player("VOCÊ", 50, 450)
+        self.jogador = Player("VOCÊ", 50, 530)
         
         # Distribuir cartas iniciais (3 para cada)
         for _ in range(3):
