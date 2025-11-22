@@ -20,6 +20,10 @@ class Card:
         CURA: (50, 200, 80)      # Verde
     }
 
+    # Fontes (Carregadas sob demanda)
+    fonte_nome = None
+    fonte_valor = None
+
     def __init__(self, tipo, x=0, y=0):
         """
         Inicializa uma carta
@@ -34,14 +38,16 @@ class Card:
         self.y = y
         self.rect = pygame.Rect(x, y, self.LARGURA, self.ALTURA)
 
+        # Inicializa fontes da classe se necessário
+        if Card.fonte_nome is None:
+            Card.fonte_nome = pygame.font.Font(None, 24)
+        if Card.fonte_valor is None:
+            Card.fonte_valor = pygame.font.Font(None, 48)
+
         # Cores
         self.cor_fundo = self.CORES.get(tipo, (100, 100, 100))
         self.cor_borda = (255, 255, 255)
         self.cor_texto = (255, 255, 255)
-
-        # Fontes
-        self.fonte_nome = pygame.font.Font(None, 24)
-        self.fonte_valor = pygame.font.Font(None, 48)
 
         # Valores das cartas
         self.valores = {
@@ -75,14 +81,14 @@ class Card:
                          espessura_borda, border_radius=10)
 
         # Nome do tipo (topo)
-        texto_nome = self.fonte_nome.render(self.tipo, True, self.cor_texto)
+        texto_nome = Card.fonte_nome.render(self.tipo, True, self.cor_texto)
         nome_rect = texto_nome.get_rect(
             center=(self.rect.centerx, self.rect.y + 25))
         tela.blit(texto_nome, nome_rect)
 
         # Valor (centro)
         valor = self.valores.get(self.tipo, 0)
-        texto_valor = self.fonte_valor.render(str(valor), True, self.cor_texto)
+        texto_valor = Card.fonte_valor.render(str(valor), True, self.cor_texto)
         valor_rect = texto_valor.get_rect(center=self.rect.center)
         tela.blit(texto_valor, valor_rect)
 

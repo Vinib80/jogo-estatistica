@@ -343,27 +343,7 @@ class JogoDuelo:
             x_grupo = x_base + espaco_entre_grupos + \
                 i * (largura_grupo + espaco_entre_grupos)
 
-            # Barra Teórica (A) - Contorno
-            altura_teorica = (prob_teorica[tipo] / max_valor) * altura_grafico
-            rect_teorica = pygame.Rect(
-                x_grupo,
-                y_base + altura_grafico - altura_teorica,
-                largura_barra,
-                altura_teorica
-            )
-            if rect_teorica.height > 0 and rect_teorica.width > 0:
-                pygame.draw.rect(
-                    # Contorno
-                    self.superficie, cores_tipo[tipo], rect_teorica, 2)
-
-            # Texto Teórico
-            texto_teorico = self.fonte_texto.render(
-                f"T:{prob_teorica[tipo]}%", True, cores_tipo[tipo])
-            rect_txt_teorico = texto_teorico.get_rect(
-                midbottom=(rect_teorica.centerx, rect_teorica.top - 5))
-            self.superficie.blit(texto_teorico, rect_txt_teorico)
-
-            # Barra Empírica (B) - Sólida
+            # Barra Empírica - Sólida
             altura_empirica = (
                 prob_empirica[tipo] / max_valor) * altura_grafico
             rect_empirica = pygame.Rect(
