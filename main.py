@@ -219,9 +219,9 @@ class JogoDuelo:
             # IA compra uma carta
             self.ia.comprar_carta(self.deck)
 
-            # Próximo estado: Jogar (após 300ms)
+            # Próximo estado: Jogar (após 1000ms = 1s)
             self.estado_ia = "IA_JOGAR"
-            self.tempo_espera_ia = pygame.time.get_ticks() + 300
+            self.tempo_espera_ia = pygame.time.get_ticks() + 1000
 
         elif self.estado_ia == "IA_JOGAR":
             if len(self.ia.mao) > 0:
@@ -235,9 +235,9 @@ class JogoDuelo:
                     # Aplica o efeito
                     self.aplicar_efeito_carta(carta, self.ia, self.jogador)
 
-            # Próximo estado: Finalizar (após 500ms)
+            # Próximo estado: Finalizar (após 1500ms = 1.5s)
             self.estado_ia = "IA_FINALIZAR"
-            self.tempo_espera_ia = pygame.time.get_ticks() + 500
+            self.tempo_espera_ia = pygame.time.get_ticks() + 1500
 
         elif self.estado_ia == "IA_FINALIZAR":
             # Volta para o turno do jogador
