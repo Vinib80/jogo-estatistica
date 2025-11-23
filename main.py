@@ -25,6 +25,28 @@ LARGURA_JOGO = int(LARGURA_VIRTUAL * 0.65)  # 65% para o jogo
 LARGURA_STATS = LARGURA_VIRTUAL - LARGURA_JOGO  # 35% para estatísticas
 
 
+class FloatingText:
+    def __init__(self, texto, x, y, cor):
+        self.texto = texto
+        self.x = x
+        self.y = y
+        self.cor = cor
+        self.alpha = 255
+        self.vida = 60  # Duração em frames (1 segundo a 60 FPS)
+
+    def atualizar(self):
+        self.y -= 1  # Sobe 1 pixel por frame
+        self.vida -= 1
+        if self.vida < 20:  # Fade out nos últimos 20 frames
+            self.alpha = int((self.vida / 20) * 255)
+
+    def desenhar(self, superficie, fonte):
+        if self.vida > 0:
+            texto_surf = fonte.render(self.texto, True, self.cor)
+            texto_surf.set_alpha(self.alpha)
+            superficie.blit(texto_surf, (self.x, self.y))
+
+
 class JogoDuelo:
     def __init__(self):
         # Configuração inicial das dimensões
@@ -79,6 +101,14 @@ class JogoDuelo:
 
         # Estado de Game Over
         self.game_over = False
+
+        # Efeitos Visuais
+        self.textos_flutuantes = []
+        self.flash_dano_timer = 0
+
+    def adicionar_texto_flutuante(self, texto, x, y, cor):
+        """Adiciona um texto flutuante à lista"""
+        self.textos_flutuantes.append(FloatingText(texto, x, y, cor))
 
     def converter_pos_mouse(self, pos):
         """Converte a posição do mouse da janela para a resolução virtual"""
@@ -135,6 +165,15 @@ class JogoDuelo:
         if self.game_over:
             return
 
+        # Atualiza efeitos visuais
+        if self.flash_dano_timer > 0:
+            self.flash_dano_timer -= 1
+
+        for texto in self.textos_flutuantes[:]:
+            texto.atualizar()
+            if texto.vida <= 0:
+                self.textos_flutuantes.remove(texto)
+
         # Verifica se é hora da IA jogar
         if self.aguardando_ia:
             tempo_atual = pygame.time.get_ticks()
@@ -183,6 +222,12 @@ class JogoDuelo:
             # Aplica o efeito da carta
             self.aplicar_efeito_carta(carta, self.jogador, self.ia)
 
+            # Texto flutuante de ação
+            cor_texto_flutuante = (255, 255, 50)  # Amarelo
+            self.adicionar_texto_flutuante(
+                f"Jogou {carta.tipo}!",
+                self.jogador.x + 20, self.jogador.y - 40, cor_texto_flutuante)
+
             # Passa o turno para a IA
             self.passar_turno()
 
@@ -199,17 +244,33 @@ class JogoDuelo:
             self.mensagem = f"{jogador_ativo.nome} atacou! {dano_real} de dano!"
             self.cor_mensagem = (255, 100, 100)
 
+            # Visual: Texto flutuante no oponente
+            self.adicionar_texto_flutuante(
+                f"-{dano_real} HP", oponente.x + 20, oponente.y - 20, (255, 50, 50))
+
+            # Visual: Flash de tela se houve dano
+            if dano_real > 0:
+                self.flash_dano_timer = 10
+
         elif carta.tipo == Card.DEFESA:
             defesa = carta.valores[Card.DEFESA]
             jogador_ativo.adicionar_defesa(defesa)
             self.mensagem = f"{jogador_ativo.nome} defendeu! +{defesa} de defesa!"
             self.cor_mensagem = (100, 150, 255)
 
+            # Visual: Texto flutuante no jogador ativo
+            self.adicionar_texto_flutuante(
+                f"+{defesa} DEF", jogador_ativo.x + 20, jogador_ativo.y - 20, (100, 150, 255))
+
         elif carta.tipo == Card.CURA:
             cura = carta.valores[Card.CURA]
             cura_real = jogador_ativo.curar(cura)
             self.mensagem = f"{jogador_ativo.nome} se curou! +{cura_real} HP!"
             self.cor_mensagem = (100, 255, 100)
+
+            # Visual: Texto flutuante no jogador ativo
+            self.adicionar_texto_flutuante(
+                f"+{cura_real} HP", jogador_ativo.x + 20, jogador_ativo.y - 20, (100, 255, 100))
 
     def passar_turno(self):
         """Passa o turno para o outro jogador"""
@@ -469,6 +530,18 @@ class JogoDuelo:
         # Desenha as mãos dos jogadores
         self.ia.desenhar_mao(self.superficie, 150, 150)
         self.jogador.desenhar_mao(self.superficie, 150, 380)
+
+        # Desenha textos flutuantes
+        for texto in self.textos_flutuantes:
+            texto.desenhar(self.superficie, self.fonte_titulo)
+
+        # Flash de dano
+        if self.flash_dano_timer > 0:
+            overlay = pygame.Surface(
+                (LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
+            alpha = int((self.flash_dano_timer / 10) * 100)  # Max alpha 100
+            overlay.fill((255, 0, 0, alpha))
+            self.superficie.blit(overlay, (0, 0))
 
         if self.game_over:
             self.desenhar_game_over()
