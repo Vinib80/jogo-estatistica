@@ -401,22 +401,37 @@ class JogoDuelo:
         # Área de Estatísticas (Direita)
         area_stats = pygame.Rect(
             LARGURA_JOGO + 10, 10, LARGURA_STATS - 20, ALTURA_VIRTUAL - 20)
-        pygame.draw.rect(self.superficie, COR_AREA_STATS, area_stats)
-        pygame.draw.rect(self.superficie, COR_BORDA, area_stats, 3)
+
+        # O fundo e borda agora são desenhados dentro de desenhar_estatisticas
+        # para permitir um visual mais customizado (painel arredondado)
 
         # Desenha as estatísticas do baralho
         self.desenhar_estatisticas(area_stats)
 
     def desenhar_estatisticas(self, area):
         """Desenha as estatísticas do baralho no painel direito como histograma"""
-        x_base = area.x + 20
-        y_base = area.y + 60
+        # 1. Fundo do Painel (Estilo Profissional)
+        painel_surf = pygame.Surface(
+            (area.width, area.height), pygame.SRCALPHA)
+        cor_fundo_painel = (30, 35, 45, 240)  # Fundo escuro semi-transparente
+        pygame.draw.rect(painel_surf, cor_fundo_painel,
+                         painel_surf.get_rect(), border_radius=15)
+        pygame.draw.rect(painel_surf, (80, 90, 110),
+                         painel_surf.get_rect(), 2, border_radius=15)  # Borda
+        self.superficie.blit(painel_surf, (area.x, area.y))
 
-        # Defensive calculation for graph dimensions with clamping
-        largura_grafico = max(1, area.width - 40)
-        altura_grafico = max(1, area.height - 100)
+        # Margens internas
+        margin_x = 25
+        margin_top = 60
+        margin_bottom = 90  # Aumentado para caber a legenda detalhada
 
-        # Check for minimum space requirements to draw meaningful graph
+        x_base = area.x + margin_x
+        y_base = area.y + margin_top
+
+        largura_grafico = area.width - (2 * margin_x)
+        altura_grafico = area.height - margin_top - margin_bottom
+
+        # Check for minimum space requirements
         if largura_grafico < 50 or altura_grafico < 50:
             texto_aviso = self.fonte_texto.render(
                 "Área muito pequena", True, (255, 100, 100))
@@ -425,8 +440,9 @@ class JogoDuelo:
 
         # Título
         texto_titulo = self.fonte_titulo.render(
-            "Probabilidades", True, COR_TEXTO)
-        self.superficie.blit(texto_titulo, (x_base, area.y + 15))
+            "Probabilidades", True, (220, 220, 220))
+        rect_titulo = texto_titulo.get_rect(center=(area.centerx, area.y + 30))
+        self.superficie.blit(texto_titulo, rect_titulo)
 
         # Eixos
         eixo_x_start = (x_base, y_base + altura_grafico)
@@ -434,10 +450,10 @@ class JogoDuelo:
         eixo_y_start = (x_base, y_base)
         eixo_y_end = (x_base, y_base + altura_grafico)
 
-        pygame.draw.line(self.superficie, COR_TEXTO, eixo_x_start,
-                         eixo_x_end, 2)  # Eixo X
-        pygame.draw.line(self.superficie, COR_TEXTO, eixo_y_start,
-                         eixo_y_end, 2)  # Eixo Y
+        pygame.draw.line(self.superficie, (150, 150, 150),
+                         eixo_x_start, eixo_x_end, 2)
+        pygame.draw.line(self.superficie, (150, 150, 150),
+                         eixo_y_start, eixo_y_end, 2)
 
         # Dados
         tipos = [Card.ATAQUE, Card.DEFESA, Card.CURA]
@@ -445,26 +461,24 @@ class JogoDuelo:
         prob_empirica = self.deck.calcular_frequencia_empirica()
 
         cores_tipo = {
-            Card.ATAQUE: (220, 50, 50),
-            Card.DEFESA: (50, 120, 220),
-            Card.CURA: (50, 200, 80)
+            Card.ATAQUE: (220, 60, 60),
+            Card.DEFESA: (60, 130, 220),
+            Card.CURA: (60, 210, 90)
         }
 
-        # Configuração das barras
         num_tipos = len(tipos)
         if num_tipos == 0:
             return
 
-        espaco_entre_grupos = 20
+        espaco_entre_grupos = 30
         largura_disponivel = largura_grafico - \
             (num_tipos + 1) * espaco_entre_grupos
 
-        # Ensure positive width for groups
         if largura_disponivel <= 0:
             return
 
         largura_grupo = largura_disponivel / num_tipos
-        largura_barra = largura_grupo / 2
+        largura_barra = largura_grupo  # Barra ocupa largura do grupo
 
         max_valor = 100  # Escala de 0 a 100%
 
@@ -472,52 +486,84 @@ class JogoDuelo:
             x_grupo = x_base + espaco_entre_grupos + \
                 i * (largura_grupo + espaco_entre_grupos)
 
-            # Barra Empírica - Sólida
+            # --- Barra Empírica (Sólida) ---
             altura_empirica = (
                 prob_empirica[tipo] / max_valor) * altura_grafico
             rect_empirica = pygame.Rect(
-                x_grupo + largura_barra,
+                x_grupo,
                 y_base + altura_grafico - altura_empirica,
                 largura_barra,
                 altura_empirica
             )
-            if rect_empirica.height > 0 and rect_empirica.width > 0:
-                pygame.draw.rect(
-                    self.superficie, cores_tipo[tipo], rect_empirica)  # Sólido
 
-            # Texto Empírico
+            if rect_empirica.height > 0:
+                pygame.draw.rect(
+                    self.superficie, cores_tipo[tipo], rect_empirica, border_radius=4)
+
+            # --- Linha Tracejada (Teórica) ---
+            altura_teorica = (prob_teorica[tipo] / max_valor) * altura_grafico
+            y_teorica = y_base + altura_grafico - altura_teorica
+
+            # Desenhar linha tracejada
+            dash_len = 6
+            x_start = x_grupo - 5
+            x_end = x_grupo + largura_barra + 5
+            for x_dash in range(int(x_start), int(x_end), dash_len * 2):
+                pygame.draw.line(self.superficie, (255, 255, 255),
+                                 (x_dash, y_teorica),
+                                 (min(x_dash + dash_len, x_end), y_teorica), 2)
+
+            # --- Texto Empírico ---
+            texto_str = f"{prob_empirica[tipo]:.1f}%"
             texto_empirico = self.fonte_texto.render(
-                f"E:{prob_empirica[tipo]:.1f}%", True, COR_TEXTO)
-            rect_txt_empirico = texto_empirico.get_rect(
-                midbottom=(rect_empirica.centerx, rect_empirica.top - 5))
+                texto_str, True, (255, 255, 255))
+
+            # Lógica para evitar sobreposição
+            # Se a barra estiver muito alta (perto do topo), desenha o texto dentro da barra
+            if rect_empirica.top < y_base + 25:
+                # Desenha dentro (parte superior da barra)
+                rect_txt_empirico = texto_empirico.get_rect(
+                    midtop=(rect_empirica.centerx, rect_empirica.top + 5))
+                # Adiciona contorno preto para contraste
+                texto_outline = self.fonte_texto.render(
+                    texto_str, True, (0, 0, 0))
+                self.superficie.blit(
+                    texto_outline, (rect_txt_empirico.x + 1, rect_txt_empirico.y + 1))
+            else:
+                # Desenha acima
+                rect_txt_empirico = texto_empirico.get_rect(
+                    midbottom=(rect_empirica.centerx, rect_empirica.top - 5))
+
             self.superficie.blit(texto_empirico, rect_txt_empirico)
 
-            # Legenda do Eixo X
-            texto_tipo = self.fonte_texto.render(tipo, True, COR_TEXTO)
+            # Legenda do Eixo X (Tipo da Carta)
+            texto_tipo = self.fonte_texto.render(tipo, True, (200, 200, 200))
             rect_txt_tipo = texto_tipo.get_rect(
-                midtop=(x_grupo + largura_grupo/2, y_base + altura_grafico + 5))
+                midtop=(rect_empirica.centerx, y_base + altura_grafico + 8))
             self.superficie.blit(texto_tipo, rect_txt_tipo)
 
-        # Legenda Geral
-        y_legenda = y_base + altura_grafico + 40
+        # --- Legenda Explicativa ---
+        y_legenda_start = y_base + altura_grafico + 40
+        font_legenda = pygame.font.Font(None, 20)
 
-        # Check if we have space for legend
-        if y_legenda + 20 < area.y + area.height:
-            # Legenda Teórica
-            pygame.draw.rect(self.superficie, (200, 200, 200),
-                             (x_base, y_legenda, 20, 20), 2)
-            texto_leg_teorica = self.fonte_texto.render(
-                "Teórica (Fixo)", True, COR_TEXTO)
-            self.superficie.blit(
-                texto_leg_teorica, (x_base + 25, y_legenda + 2))
+        # Item 1: Linha Tracejada
+        pygame.draw.line(self.superficie, (255, 255, 255), (x_base,
+                         y_legenda_start + 10), (x_base + 30, y_legenda_start + 10), 2)
+        # Simular tracejado visualmente na legenda (apagando pedaços)
+        pygame.draw.rect(
+            self.superficie, cor_fundo_painel[:3], (x_base + 10, y_legenda_start + 8, 10, 4))
 
-            # Legenda Empírica
-            pygame.draw.rect(self.superficie, (200, 200, 200),
-                             (x_base + 150, y_legenda, 20, 20))
-            texto_leg_empirica = self.fonte_texto.render(
-                "Empírica (Histórico)", True, COR_TEXTO)
-            self.superficie.blit(texto_leg_empirica,
-                                 (x_base + 175, y_legenda + 2))
+        lbl_teorica = font_legenda.render(
+            "Linha Tracejada = Probabilidade Teórica (Esperado)", True, (220, 220, 220))
+        self.superficie.blit(lbl_teorica, (x_base + 40, y_legenda_start))
+
+        # Item 2: Barras Sólidas
+        y_legenda_item2 = y_legenda_start + 20
+        pygame.draw.rect(self.superficie, (150, 150, 150),
+                         (x_base, y_legenda_item2 + 2, 30, 12), border_radius=2)
+        lbl_empirica = font_legenda.render(
+            "Barras Sólidas = Realidade (Empírico)", True, (220, 220, 220))
+        self.superficie.blit(lbl_empirica, (x_base + 40, y_legenda_item2))
 
     def renderizar(self):
         """Renderiza tudo na tela"""
