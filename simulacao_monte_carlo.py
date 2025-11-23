@@ -5,6 +5,12 @@ from carta import Card
 
 
 def run_simulation():
+    """
+    Executa uma simulação de Monte Carlo para validar as probabilidades do baralho.
+
+    Realiza múltiplas simulações de compra de cartas para verificar se a distribuição
+    empírica converge para as probabilidades teóricas esperadas.
+    """
     pygame.init()
     NUM_SIMULACOES = 10000
 

@@ -1,3 +1,4 @@
+import logging
 import random
 from carta import Card
 
@@ -49,7 +50,7 @@ class Deck:
             Card: A carta comprada, ou None se o baralho e descarte estiverem vazios
         """
         if len(self.cartas) == 0 and len(self.descarte) > 0:
-            print("Baralho vazio! Embaralhando descarte...")
+            logging.info("Baralho vazio! Embaralhando descarte...")
             self.cartas = self.descarte[:]
             self.descarte = []
             self.embaralhar()

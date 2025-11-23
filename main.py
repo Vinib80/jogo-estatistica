@@ -2,8 +2,13 @@ from jogador import Player
 import pygame
 import sys
 import random
+import logging
 from carta import Card
 from baralho import Deck
+
+# Configuração de Logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Inicialização do Pygame
 pygame.init()
@@ -26,7 +31,21 @@ LARGURA_STATS = LARGURA_VIRTUAL - LARGURA_JOGO  # 35% para estatísticas
 
 
 class FloatingText:
+    """
+    Representa um texto flutuante que aparece na tela e desaparece gradualmente.
+    Usado para feedback visual de dano, cura e defesa.
+    """
+
     def __init__(self, texto, x, y, cor):
+        """
+        Inicializa o texto flutuante.
+
+        Args:
+            texto (str): O texto a ser exibido.
+            x (int): Posição X inicial.
+            y (int): Posição Y inicial.
+            cor (tuple): Cor do texto em RGB.
+        """
         self.texto = texto
         self.x = x
         self.y = y
@@ -35,12 +54,20 @@ class FloatingText:
         self.vida = 60  # Duração em frames (1 segundo a 60 FPS)
 
     def atualizar(self):
+        """Atualiza a posição e a transparência do texto."""
         self.y -= 1  # Sobe 1 pixel por frame
         self.vida -= 1
         if self.vida < 20:  # Fade out nos últimos 20 frames
             self.alpha = int((self.vida / 20) * 255)
 
     def desenhar(self, superficie, fonte):
+        """
+        Desenha o texto na superfície fornecida.
+
+        Args:
+            superficie (pygame.Surface): Superfície onde desenhar.
+            fonte (pygame.font.Font): Fonte a ser usada.
+        """
         if self.vida > 0:
             texto_surf = fonte.render(self.texto, True, self.cor)
             texto_surf.set_alpha(self.alpha)
@@ -48,7 +75,13 @@ class FloatingText:
 
 
 class JogoDuelo:
+    """
+    Classe principal que gerencia o jogo de duelo de cartas.
+    Controla o loop do jogo, eventos, renderização e lógica de turnos.
+    """
+
     def __init__(self):
+        """Inicializa o jogo, configurando janela, baralho e jogadores."""
         # Configuração inicial das dimensões
         self.tela_cheia = False
 
@@ -71,7 +104,7 @@ class JogoDuelo:
         self.deck = Deck()
 
         # Flag de debug: Pré-popular histórico
-        DEBUG_HISTORICO = True
+        DEBUG_HISTORICO = False
         if DEBUG_HISTORICO:
             for _ in range(10):
                 self.deck.historico_cartas.append(Card.ATAQUE)
@@ -320,7 +353,7 @@ class JogoDuelo:
 
     def reiniciar_jogo(self):
         """Reinicia o jogo completamente"""
-        print("🔄 Reiniciando o jogo...")
+        logging.info("🔄 Reiniciando o jogo...")
 
         # Reseta o Deck (recria e embaralha)
         self.deck.resetar()
@@ -601,7 +634,7 @@ class JogoDuelo:
 
     def executar(self):
         """Loop principal do jogo"""
-        print("🎮 Jogo iniciado! Pressione ESC para sair.")
+        logging.info("🎮 Jogo iniciado! Pressione ESC para sair.")
 
         while self.rodando:
             self.processar_eventos()
@@ -613,7 +646,7 @@ class JogoDuelo:
 
     def encerrar(self):
         """Encerra o jogo corretamente"""
-        print("👋 Encerrando o jogo...")
+        logging.info("👋 Encerrando o jogo...")
         pygame.quit()
         sys.exit()
 
