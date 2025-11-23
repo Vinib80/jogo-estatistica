@@ -7,6 +7,7 @@ class Player:
 
     HP_MAXIMO = 20
     TAMANHO_MAO = 4  # Aumentado para 4 (compra 1, depois joga 1)
+    MAX_DEFESA = 10
 
     def __init__(self, nome, x=0, y=0):
         """
@@ -124,6 +125,8 @@ class Player:
             quantidade: Quantidade de defesa a adicionar
         """
         self.defesa_ativa += quantidade
+        if self.defesa_ativa > self.MAX_DEFESA:
+            self.defesa_ativa = self.MAX_DEFESA
 
     def resetar_defesa(self):
         """Remove toda a defesa ativa (usado no início do turno)"""
@@ -159,7 +162,11 @@ class Player:
 
         # Defesa ativa (se houver)
         if self.defesa_ativa > 0:
-            cor_defesa = (50, 120, 220)
+            if self.defesa_ativa >= self.MAX_DEFESA:
+                cor_defesa = (0, 255, 255)  # Ciano para defesa máxima
+            else:
+                cor_defesa = (50, 120, 220)
+
             texto_defesa = self.fonte_hp.render(
                 f"[DEF: {self.defesa_ativa}]", True, cor_defesa)
             tela.blit(texto_defesa, (self.x, self.y + 65))
