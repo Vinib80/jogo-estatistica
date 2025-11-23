@@ -77,6 +77,9 @@ class JogoDuelo:
         self.tempo_espera_ia = 0
         self.estado_ia = None
 
+        # Estado de Game Over
+        self.game_over = False
+
     def converter_pos_mouse(self, pos):
         """Converte a posição do mouse da janela para a resolução virtual"""
         largura_janela, altura_janela = self.tela.get_size()
@@ -107,6 +110,8 @@ class JogoDuelo:
                     self.rodando = False
                 elif evento.key == pygame.K_F11:
                     self.alternar_tela_cheia()
+                elif self.game_over and evento.key == pygame.K_r:
+                    self.reiniciar_jogo()
             elif evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 1:  # Clique esquerdo
                     pos_virtual = self.converter_pos_mouse(evento.pos)
@@ -121,9 +126,14 @@ class JogoDuelo:
         if not self.jogador.esta_vivo():
             self.mensagem = "VOCÊ PERDEU! A IA venceu!"
             self.cor_mensagem = (255, 50, 50)
+            self.game_over = True
         elif not self.ia.esta_vivo():
             self.mensagem = "VOCÊ VENCEU! Parabéns!"
             self.cor_mensagem = (50, 255, 50)
+            self.game_over = True
+
+        if self.game_over:
+            return
 
         # Verifica se é hora da IA jogar
         if self.aguardando_ia:
@@ -246,6 +256,64 @@ class JogoDuelo:
             self.cor_mensagem = (255, 255, 100)
             self.aguardando_ia = False
             self.estado_ia = None
+
+    def reiniciar_jogo(self):
+        """Reinicia o jogo completamente"""
+        print("🔄 Reiniciando o jogo...")
+
+        # Reseta o Deck (recria e embaralha)
+        self.deck.resetar()
+
+        # Reseta os Jogadores (HP máximo, mão vazia, defesa 0)
+        self.ia = Player("IA", 50, 80)
+        self.jogador = Player("VOCÊ", 50, 500)
+
+        # Distribuir cartas iniciais (3 para cada)
+        for _ in range(3):
+            self.jogador.comprar_carta(self.deck)
+            self.ia.comprar_carta(self.deck)
+
+        # Reseta estado do jogo
+        self.turno_jogador = True
+        self.fase_turno = "comprar"
+        self.carta_selecionada = None
+        self.mensagem = "Seu turno! Clique para comprar uma carta."
+        self.cor_mensagem = (255, 255, 100)
+        self.aguardando_ia = False
+        self.tempo_espera_ia = 0
+        self.estado_ia = None
+        self.game_over = False
+
+    def desenhar_game_over(self):
+        """Desenha a tela de Game Over"""
+        # Overlay escuro
+        overlay = pygame.Surface(
+            (LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))  # Semi-transparent black
+        self.superficie.blit(overlay, (0, 0))
+
+        # Mensagem de Resultado
+        texto_msg = self.fonte_titulo.render(
+            self.mensagem, True, self.cor_mensagem)
+        rect_msg = texto_msg.get_rect(
+            center=(LARGURA_VIRTUAL // 2, ALTURA_VIRTUAL // 2 - 50))
+        self.superficie.blit(texto_msg, rect_msg)
+
+        # Botão de Reiniciar
+        texto_restart = self.fonte_titulo.render(
+            "Pressione R para Reiniciar", True, (255, 255, 255))
+        rect_restart = texto_restart.get_rect(
+            center=(LARGURA_VIRTUAL // 2, ALTURA_VIRTUAL // 2 + 50))
+
+        # Fundo do botão
+        padding = 20
+        bg_rect = rect_restart.inflate(padding * 2, padding)
+        pygame.draw.rect(self.superficie, (50, 50, 80),
+                         bg_rect, border_radius=10)
+        pygame.draw.rect(self.superficie, (100, 100, 150),
+                         bg_rect, 3, border_radius=10)
+
+        self.superficie.blit(texto_restart, rect_restart)
 
     def desenhar_interface(self):
         """Desenha a interface dividida do jogo"""
@@ -401,6 +469,9 @@ class JogoDuelo:
         # Desenha as mãos dos jogadores
         self.ia.desenhar_mao(self.superficie, 150, 150)
         self.jogador.desenhar_mao(self.superficie, 150, 380)
+
+        if self.game_over:
+            self.desenhar_game_over()
 
         # Escala a superfície virtual para o tamanho da janela
         scaled_surface = pygame.transform.smoothscale(
