@@ -31,6 +31,33 @@ LARGURA_JOGO = int(LARGURA_VIRTUAL * 0.65)  # 65% para o jogo
 LARGURA_STATS = LARGURA_VIRTUAL - LARGURA_JOGO  # 35% para estatísticas
 
 
+class Particle:
+    """
+    Representa uma partícula simples para efeitos visuais.
+    """
+
+    def __init__(self, x, y, cor):
+        self.x = x
+        self.y = y
+        self.cor = cor
+        # Velocidade aleatória explosiva
+        self.vx = random.uniform(-5, 5)
+        self.vy = random.uniform(-5, 5)
+        self.vida = random.randint(20, 40)  # Frames de vida
+        self.tamanho = random.randint(3, 6)
+
+    def atualizar(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.vida -= 1
+        self.tamanho = max(0, self.tamanho - 0.1)  # Diminui tamanho
+
+    def desenhar(self, superficie):
+        if self.vida > 0:
+            pygame.draw.rect(superficie, self.cor, (int(self.x), int(
+                self.y), int(self.tamanho), int(self.tamanho)))
+
+
 class FloatingText:
     """
     Representa um texto flutuante que aparece na tela e desaparece gradualmente.
@@ -178,8 +205,14 @@ class JogoDuelo:
 
         # Efeitos Visuais
         self.textos_flutuantes = []
+        self.particulas = []  # Lista de partículas
         self.cartas_animando_descarte = []  # Lista de cartas sendo jogadas na mesa
         self.flash_dano_timer = 0
+
+    def gerar_particulas_dano(self, x, y, cor):
+        """Gera uma explosão de partículas na posição especificada"""
+        for _ in range(15):  # 15 a 20 partículas
+            self.particulas.append(Particle(x, y, cor))
 
     def adicionar_texto_flutuante(self, texto, x, y, cor):
         """Adiciona um texto flutuante à lista"""
@@ -270,6 +303,12 @@ class JogoDuelo:
             texto.atualizar()
             if texto.vida <= 0:
                 self.textos_flutuantes.remove(texto)
+
+        # Atualiza partículas
+        for particula in self.particulas[:]:
+            particula.atualizar()
+            if particula.vida <= 0:
+                self.particulas.remove(particula)
 
         # Verifica se é hora da IA jogar
         if self.aguardando_ia:
@@ -362,6 +401,11 @@ class JogoDuelo:
             # Visual: Texto flutuante no oponente
             self.adicionar_texto_flutuante(
                 f"-{dano_real} HP", oponente.x + 20, oponente.y - 20, (255, 50, 50))
+
+            # Visual: Partículas de dano
+            self.gerar_particulas_dano(
+                # Vermelho sangue
+                oponente.x + 50, oponente.y + 50, (255, 50, 50))
 
             # Visual: Flash de tela se houve dano
             if dano_real > 0:
@@ -708,6 +752,10 @@ class JogoDuelo:
         # Desenha textos flutuantes
         for texto in self.textos_flutuantes:
             texto.desenhar(self.superficie, self.fonte_titulo)
+
+        # Desenha partículas
+        for particula in self.particulas:
+            particula.desenhar(self.superficie)
 
         # Flash de dano
         if self.flash_dano_timer > 0:
