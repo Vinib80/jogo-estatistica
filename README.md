@@ -78,7 +78,7 @@ O projeto inclui um script de validação (`simulacao_monte_carlo.py`) que roda 
 1.  **Clone o repositório:**
 
     ```bash
-    git clone https://github.com/seu-usuario/jogo-estatistica.git
+    git clone https://github.com/Vinib80/jogo-estatistica.git
     cd jogo-estatistica
     ```
 
