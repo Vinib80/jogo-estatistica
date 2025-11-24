@@ -178,6 +178,7 @@ class JogoDuelo:
 
         # Efeitos Visuais
         self.textos_flutuantes = []
+        self.cartas_animando_descarte = []  # Lista de cartas sendo jogadas na mesa
         self.flash_dano_timer = 0
 
     def adicionar_texto_flutuante(self, texto, x, y, cor):
@@ -229,6 +230,24 @@ class JogoDuelo:
         # Atualiza animações dos jogadores
         self.jogador.atualizar()
         self.ia.atualizar()
+
+        # Atualiza cartas sendo jogadas (animação para o centro)
+        for item in self.cartas_animando_descarte[:]:
+            carta = item['carta']
+            carta.atualizar()
+
+            # Verifica se chegou ao destino (centro)
+            distancia = ((carta.x - carta.target_x)**2 +
+                         (carta.y - carta.target_y)**2)**0.5
+            if distancia < 5:
+                # Chegou ao destino: Aplica efeito e descarta
+                self.aplicar_efeito_carta(carta, item['origem'], item['alvo'])
+                self.deck.adicionar_ao_descarte(carta)
+                self.cartas_animando_descarte.remove(item)
+
+                # Executa callback de finalização (passar turno, etc)
+                if item.get('callback'):
+                    item['callback']()
 
         # Verifica se alguém morreu
         if not self.jogador.esta_vivo():
@@ -294,25 +313,43 @@ class JogoDuelo:
         """Jogador joga uma carta"""
         carta = self.jogador.jogar_carta(indice)
         if carta:
-            # Adiciona ao descarte
-            self.deck.adicionar_ao_descarte(carta)
+            # Define destino para o centro da mesa
+            centro_x = LARGURA_JOGO // 2 - Card.LARGURA // 2
+            centro_y = ALTURA_VIRTUAL // 2 - Card.ALTURA // 2
+            carta.definir_posicao(centro_x, centro_y)
 
-            # Aplica o efeito da carta
-            self.aplicar_efeito_carta(carta, self.jogador, self.ia)
+            # Adiciona à lista de animação
+            self.cartas_animando_descarte.append({
+                'carta': carta,
+                'origem': self.jogador,
+                'alvo': self.ia,
+                'callback': self.finalizar_turno_jogador
+            })
 
-            # Texto flutuante de ação
+            # Bloqueia input do jogador durante animação
+            self.fase_turno = "animando"
+
+            # Texto flutuante de ação imediata
             cor_texto_flutuante = (255, 255, 50)  # Amarelo
             self.adicionar_texto_flutuante(
                 f"Jogou {carta.tipo}!",
                 self.jogador.x + 20, self.jogador.y - 40, cor_texto_flutuante)
 
-            # Passa o turno para a IA
-            self.passar_turno()
+    def finalizar_turno_jogador(self):
+        """Finaliza o turno do jogador após a animação"""
+        # Passa o turno para a IA
+        self.passar_turno()
 
-            # Agenda o turno da IA
-            self.aguardando_ia = True
-            self.estado_ia = "IA_COMPRAR"
-            self.tempo_espera_ia = pygame.time.get_ticks() + 500
+        # Agenda o turno da IA
+        self.aguardando_ia = True
+        self.estado_ia = "IA_COMPRAR"
+        self.tempo_espera_ia = pygame.time.get_ticks() + 500
+
+    def finalizar_jogada_ia(self):
+        """Finaliza a jogada da IA após a animação"""
+        # Próximo estado: Finalizar (após 1500ms = 1.5s)
+        self.estado_ia = "IA_FINALIZAR"
+        self.tempo_espera_ia = pygame.time.get_ticks() + 1500
 
     def aplicar_efeito_carta(self, carta, jogador_ativo, oponente):
         """Aplica o efeito de uma carta"""
@@ -378,15 +415,21 @@ class JogoDuelo:
                 carta = self.ia.jogar_carta(indice)
 
                 if carta:
-                    # Adiciona ao descarte
-                    self.deck.adicionar_ao_descarte(carta)
+                    # Define destino para o centro da mesa
+                    centro_x = LARGURA_JOGO // 2 - Card.LARGURA // 2
+                    centro_y = ALTURA_VIRTUAL // 2 - Card.ALTURA // 2
+                    carta.definir_posicao(centro_x, centro_y)
 
-                    # Aplica o efeito
-                    self.aplicar_efeito_carta(carta, self.ia, self.jogador)
+                    # Adiciona à lista de animação
+                    self.cartas_animando_descarte.append({
+                        'carta': carta,
+                        'origem': self.ia,
+                        'alvo': self.jogador,
+                        'callback': self.finalizar_jogada_ia
+                    })
 
-            # Próximo estado: Finalizar (após 1500ms = 1.5s)
-            self.estado_ia = "IA_FINALIZAR"
-            self.tempo_espera_ia = pygame.time.get_ticks() + 1500
+                    # Muda estado para aguardar animação
+                    self.estado_ia = "IA_ANIMANDO"
 
         elif self.estado_ia == "IA_FINALIZAR":
             # Volta para o turno do jogador
@@ -655,6 +698,12 @@ class JogoDuelo:
         # Desenha as mãos dos jogadores
         self.ia.desenhar_mao(self.superficie, 150, 150, self.assets)
         self.jogador.desenhar_mao(self.superficie, 150, 380, self.assets)
+
+        # Desenha cartas em animação (jogadas na mesa)
+        for item in self.cartas_animando_descarte:
+            carta = item['carta']
+            imagem = self.assets.get(carta.tipo)
+            carta.desenhar(self.superficie, imagem_sprite=imagem)
 
         # Desenha textos flutuantes
         for texto in self.textos_flutuantes:
