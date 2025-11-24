@@ -171,7 +171,7 @@ class Player:
                 f"[DEF: {self.defesa_ativa}]", True, cor_defesa)
             tela.blit(texto_defesa, (self.x, self.y + 65))
 
-    def desenhar_mao(self, tela, x_inicio, y_inicio, espacamento=120):
+    def desenhar_mao(self, tela, x_inicio, y_inicio, assets=None, espacamento=120):
         """
         Desenha as cartas da mão do jogador
 
@@ -179,11 +179,17 @@ class Player:
             tela: Superfície do Pygame onde desenhar
             x_inicio: Posição X inicial da primeira carta
             y_inicio: Posição Y das cartas
+            assets: Dicionário de imagens (sprites) das cartas
             espacamento: Distância entre cartas
         """
         for i, carta in enumerate(self.mao):
             carta.definir_posicao(x_inicio + (i * espacamento), y_inicio)
-            carta.desenhar(tela)
+
+            imagem = None
+            if assets:
+                imagem = assets.get(carta.tipo)
+
+            carta.desenhar(tela, imagem_sprite=imagem)
 
     def __str__(self):
         """Representação em string do jogador"""

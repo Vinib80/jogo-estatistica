@@ -3,6 +3,7 @@ import pygame
 import sys
 import random
 import logging
+import os
 from carta import Card
 from baralho import Deck
 
@@ -99,6 +100,27 @@ class JogoDuelo:
         # Fonte para textos
         self.fonte_titulo = pygame.font.Font(None, 36)
         self.fonte_texto = pygame.font.Font(None, 24)
+
+        # Carregamento de Assets
+        self.assets = {}
+        ASSETS_DIR = "assets"
+
+        cartas_files = {
+            Card.ATAQUE: "carta_Ataque.png",
+            Card.DEFESA: "carta_Defesa.png",
+            Card.CURA: "carta_Cura.png"
+        }
+
+        for tipo, filename in cartas_files.items():
+            path = os.path.join(ASSETS_DIR, filename)
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                img = pygame.transform.scale(img, (Card.LARGURA, Card.ALTURA))
+                self.assets[tipo] = img
+                logging.info(f"Asset carregado: {filename}")
+            except Exception as e:
+                logging.warning(f"Falha ao carregar asset {filename}: {e}")
+                self.assets[tipo] = None
 
         # Baralho do jogo
         self.deck = Deck()
@@ -607,8 +629,8 @@ class JogoDuelo:
         self.jogador.desenhar(self.superficie)
 
         # Desenha as mãos dos jogadores
-        self.ia.desenhar_mao(self.superficie, 150, 150)
-        self.jogador.desenhar_mao(self.superficie, 150, 380)
+        self.ia.desenhar_mao(self.superficie, 150, 150, self.assets)
+        self.jogador.desenhar_mao(self.superficie, 150, 380, self.assets)
 
         # Desenha textos flutuantes
         for texto in self.textos_flutuantes:

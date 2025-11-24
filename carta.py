@@ -70,40 +70,47 @@ class Card:
         """Verifica se um ponto (x, y) está dentro da carta"""
         return self.rect.collidepoint(x, y)
 
-    def desenhar(self, tela):
+    def desenhar(self, tela, imagem_sprite=None):
         """Desenha a carta na tela"""
         # Fundo da carta
         pygame.draw.rect(tela, self.cor_fundo, self.rect, border_radius=10)
+
+        # Imagem (Sprite)
+        if imagem_sprite:
+            tela.blit(imagem_sprite, (self.rect.x, self.rect.y))
+        else:
+            # Fallback: Desenha textos apenas se não houver imagem
+            # Nome do tipo (topo)
+            texto_nome = Card.fonte_nome.render(
+                self.tipo, True, self.cor_texto)
+            nome_rect = texto_nome.get_rect(
+                center=(self.rect.centerx, self.rect.y + 25))
+            tela.blit(texto_nome, nome_rect)
+
+            # Valor (centro)
+            valor = self.valores.get(self.tipo, 0)
+            texto_valor = Card.fonte_valor.render(
+                str(valor), True, self.cor_texto)
+            valor_rect = texto_valor.get_rect(center=self.rect.center)
+            tela.blit(texto_valor, valor_rect)
+
+            # Símbolo ASCII (abaixo do valor)
+            simbolos = {
+                self.ATAQUE: "ATK",
+                self.DEFESA: "DEF",
+                self.CURA: "HP+"
+            }
+            simbolo = simbolos.get(self.tipo, "?")
+            fonte_simbolo = pygame.font.Font(None, 28)
+            texto_simbolo = fonte_simbolo.render(simbolo, True, self.cor_texto)
+            simbolo_rect = texto_simbolo.get_rect(
+                center=(self.rect.centerx, self.rect.bottom - 30))
+            tela.blit(texto_simbolo, simbolo_rect)
 
         # Borda (mais grossa se destacada)
         espessura_borda = 4 if self.destacada else 2
         pygame.draw.rect(tela, self.cor_borda, self.rect,
                          espessura_borda, border_radius=10)
-
-        # Nome do tipo (topo)
-        texto_nome = Card.fonte_nome.render(self.tipo, True, self.cor_texto)
-        nome_rect = texto_nome.get_rect(
-            center=(self.rect.centerx, self.rect.y + 25))
-        tela.blit(texto_nome, nome_rect)
-
-        # Valor (centro)
-        valor = self.valores.get(self.tipo, 0)
-        texto_valor = Card.fonte_valor.render(str(valor), True, self.cor_texto)
-        valor_rect = texto_valor.get_rect(center=self.rect.center)
-        tela.blit(texto_valor, valor_rect)
-
-        # Símbolo ASCII (abaixo do valor)
-        simbolos = {
-            self.ATAQUE: "ATK",
-            self.DEFESA: "DEF",
-            self.CURA: "HP+"
-        }
-        simbolo = simbolos.get(self.tipo, "?")
-        fonte_simbolo = pygame.font.Font(None, 28)
-        texto_simbolo = fonte_simbolo.render(simbolo, True, self.cor_texto)
-        simbolo_rect = texto_simbolo.get_rect(
-            center=(self.rect.centerx, self.rect.bottom - 30))
-        tela.blit(texto_simbolo, simbolo_rect)
 
     def __str__(self):
         """Representação em string da carta"""
