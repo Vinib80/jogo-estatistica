@@ -208,6 +208,7 @@ class JogoDuelo:
         self.particulas = []  # Lista de partículas
         self.cartas_animando_descarte = []  # Lista de cartas sendo jogadas na mesa
         self.flash_dano_timer = 0
+        self.shake_timer = 0  # Timer para o efeito de screen shake
 
     def gerar_particulas_dano(self, x, y, cor):
         """Gera uma explosão de partículas na posição especificada"""
@@ -298,6 +299,9 @@ class JogoDuelo:
         # Atualiza efeitos visuais
         if self.flash_dano_timer > 0:
             self.flash_dano_timer -= 1
+
+        if self.shake_timer > 0:
+            self.shake_timer -= 1
 
         for texto in self.textos_flutuantes[:]:
             texto.atualizar()
@@ -410,6 +414,7 @@ class JogoDuelo:
             # Visual: Flash de tela se houve dano
             if dano_real > 0:
                 self.flash_dano_timer = 10
+                self.shake_timer = 10  # Inicia o screen shake
 
         elif carta.tipo == Card.DEFESA:
             defesa = carta.valores[Card.DEFESA]
@@ -771,7 +776,15 @@ class JogoDuelo:
         # Escala a superfície virtual para o tamanho da janela
         scaled_surface = pygame.transform.smoothscale(
             self.superficie, self.tela.get_size())
-        self.tela.blit(scaled_surface, (0, 0))
+
+        # Aplica Screen Shake
+        offset_x = 0
+        offset_y = 0
+        if self.shake_timer > 0:
+            offset_x = random.randint(-5, 5)
+            offset_y = random.randint(-5, 5)
+
+        self.tela.blit(scaled_surface, (offset_x, offset_y))
 
         pygame.display.flip()
 
