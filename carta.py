@@ -36,6 +36,8 @@ class Card:
         self.tipo = tipo
         self.x = x
         self.y = y
+        self.target_x = x
+        self.target_y = y
         self.rect = pygame.Rect(x, y, self.LARGURA, self.ALTURA)
 
         # Inicializa fontes da classe se necessário
@@ -60,11 +62,9 @@ class Card:
         self.destacada = False  # Para quando passar o mouse
 
     def definir_posicao(self, x, y):
-        """Define a posição da carta"""
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
+        """Define a posição alvo da carta"""
+        self.target_x = x
+        self.target_y = y
 
     def contem_ponto(self, x, y):
         """Verifica se um ponto (x, y) está dentro da carta"""
@@ -118,3 +118,18 @@ class Card:
 
     def __repr__(self):
         return self.__str__()
+
+    def atualizar(self):
+        """Atualiza a posição da carta com animação suave (Lerp)"""
+        # Interpolação linear para X
+        self.x += (self.target_x - self.x) * 0.1
+        if abs(self.target_x - self.x) < 1:
+            self.x = self.target_x
+
+        # Interpolação linear para Y
+        self.y += (self.target_y - self.y) * 0.1
+        if abs(self.target_y - self.y) < 1:
+            self.y = self.target_y
+
+        # Atualiza o rect para colisão e desenho
+        self.rect.topleft = (int(self.x), int(self.y))

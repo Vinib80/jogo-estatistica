@@ -226,6 +226,10 @@ class JogoDuelo:
 
     def atualizar(self):
         """Atualiza a lógica do jogo"""
+        # Atualiza animações dos jogadores
+        self.jogador.atualizar()
+        self.ia.atualizar()
+
         # Verifica se alguém morreu
         if not self.jogador.esta_vivo():
             self.mensagem = "VOCÊ PERDEU! A IA venceu!"

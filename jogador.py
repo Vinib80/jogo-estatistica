@@ -143,6 +143,11 @@ class Player:
         """
         return self.hp > 0
 
+    def atualizar(self):
+        """Atualiza o estado do jogador e suas cartas"""
+        for carta in self.mao:
+            carta.atualizar()
+
     def desenhar(self, tela):
         """Desenha as informações do jogador na tela"""
         # Desenha o avatar se existir
