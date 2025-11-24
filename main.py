@@ -122,6 +122,24 @@ class JogoDuelo:
                 logging.warning(f"Falha ao carregar asset {filename}: {e}")
                 self.assets[tipo] = None
 
+        # Carregar Avatares
+        avatars_files = {
+            "avatar_ia": "avatar_ia.png",
+            "avatar_player": "avatar_player.png"
+        }
+
+        for nome, filename in avatars_files.items():
+            path = os.path.join(ASSETS_DIR, filename)
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                # Tamanho fixo para avatares
+                img = pygame.transform.scale(img, (100, 100))
+                self.assets[nome] = img
+                logging.info(f"Avatar carregado: {filename}")
+            except Exception as e:
+                logging.warning(f"Falha ao carregar avatar {filename}: {e}")
+                self.assets[nome] = None
+
         # Baralho do jogo
         self.deck = Deck()
 
@@ -132,8 +150,9 @@ class JogoDuelo:
                 self.deck.historico_cartas.append(Card.ATAQUE)
 
         # Jogadores (posições fixas na resolução virtual)
-        self.ia = Player("IA", 50, 80)
-        self.jogador = Player("VOCÊ", 50, 500)  # 500 é fixo na altura 600
+        self.ia = Player("IA", 50, 80, avatar=self.assets.get("avatar_ia"))
+        self.jogador = Player("VOCÊ", 50, 500, avatar=self.assets.get(
+            "avatar_player"))  # 500 é fixo na altura 600
 
         # Distribuir cartas iniciais (3 para cada)
         for _ in range(3):
@@ -381,8 +400,9 @@ class JogoDuelo:
         self.deck.resetar()
 
         # Reseta os Jogadores (HP máximo, mão vazia, defesa 0)
-        self.ia = Player("IA", 50, 80)
-        self.jogador = Player("VOCÊ", 50, 500)
+        self.ia = Player("IA", 50, 80, avatar=self.assets.get("avatar_ia"))
+        self.jogador = Player(
+            "VOCÊ", 50, 500, avatar=self.assets.get("avatar_player"))
 
         # Distribuir cartas iniciais (3 para cada)
         for _ in range(3):

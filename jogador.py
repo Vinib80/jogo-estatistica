@@ -9,7 +9,7 @@ class Player:
     TAMANHO_MAO = 4  # Aumentado para 4 (compra 1, depois joga 1)
     MAX_DEFESA = 10
 
-    def __init__(self, nome, x=0, y=0):
+    def __init__(self, nome, x=0, y=0, avatar=None):
         """
         Inicializa um jogador
 
@@ -17,6 +17,7 @@ class Player:
             nome: Nome do jogador (ex: "Jogador", "IA")
             x: Posição X para desenhar o jogador
             y: Posição Y para desenhar o jogador
+            avatar: Imagem (Surface) do avatar do jogador
         """
         self.nome = nome
         self.hp = self.HP_MAXIMO
@@ -24,6 +25,7 @@ class Player:
         self.defesa_ativa = 0  # Pontos de defesa acumulados
         self.x = x
         self.y = y
+        self.avatar = avatar
 
         # Fontes para renderizar
         self.fonte_nome = pygame.font.Font(None, 32)
@@ -143,10 +145,17 @@ class Player:
 
     def desenhar(self, tela):
         """Desenha as informações do jogador na tela"""
+        # Desenha o avatar se existir
+        offset_x = 0
+        if self.avatar:
+            tela.blit(self.avatar, (self.x, self.y))
+            # Desloca o texto para a direita (assumindo avatar ~100px)
+            offset_x = 110
+
         # Nome do jogador
         cor_nome = (255, 255, 255)
         texto_nome = self.fonte_nome.render(self.nome, True, cor_nome)
-        tela.blit(texto_nome, (self.x, self.y))
+        tela.blit(texto_nome, (self.x + offset_x, self.y))
 
         # HP (com cor baseada na vida)
         if self.hp > 14:
@@ -158,7 +167,7 @@ class Player:
 
         texto_hp = self.fonte_hp.render(
             f"HP: {self.hp}/{self.HP_MAXIMO}", True, cor_hp)
-        tela.blit(texto_hp, (self.x, self.y + 35))
+        tela.blit(texto_hp, (self.x + offset_x, self.y + 35))
 
         # Defesa ativa (se houver)
         if self.defesa_ativa > 0:
@@ -169,7 +178,7 @@ class Player:
 
             texto_defesa = self.fonte_hp.render(
                 f"[DEF: {self.defesa_ativa}]", True, cor_defesa)
-            tela.blit(texto_defesa, (self.x, self.y + 65))
+            tela.blit(texto_defesa, (self.x + offset_x, self.y + 65))
 
     def desenhar_mao(self, tela, x_inicio, y_inicio, assets=None, espacamento=120):
         """
