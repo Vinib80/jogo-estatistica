@@ -127,6 +127,8 @@ class JogoDuelo:
         # Fonte para textos
         self.fonte_titulo = pygame.font.Font(None, 36)
         self.fonte_texto = pygame.font.Font(None, 24)
+        # Fonte menor para mensagens de feedback
+        self.fonte_mensagem = pygame.font.Font(None, 22)
 
         # Carregamento de Assets
         self.assets = {}
@@ -562,11 +564,11 @@ class JogoDuelo:
             "CAMPO DE BATALHA", True, COR_TEXTO)
         self.superficie.blit(texto_jogo, (area_jogo.x + 20, area_jogo.y + 15))
 
-        # Mensagem de feedback do jogo
-        texto_msg = self.fonte_texto.render(
+        # Mensagem de feedback do jogo (Reposicionada para o topo e reduzida)
+        texto_msg = self.fonte_mensagem.render(
             self.mensagem, True, self.cor_mensagem)
         msg_rect = texto_msg.get_rect(
-            center=(area_jogo.centerx, area_jogo.centery))
+            midtop=(area_jogo.centerx, area_jogo.y + 60))
         self.superficie.blit(texto_msg, msg_rect)
 
         # Área de Estatísticas (Direita)
@@ -745,8 +747,9 @@ class JogoDuelo:
         self.jogador.desenhar(self.superficie)
 
         # Desenha as mãos dos jogadores
-        self.ia.desenhar_mao(self.superficie, 150, 150, self.assets)
-        self.jogador.desenhar_mao(self.superficie, 150, 380, self.assets)
+        # Ajustado Y para não cobrir informações (IA: 180, Jogador: 340)
+        self.ia.desenhar_mao(self.superficie, 150, 180, self.assets)
+        self.jogador.desenhar_mao(self.superficie, 150, 340, self.assets)
 
         # Desenha cartas em animação (jogadas na mesa)
         for item in self.cartas_animando_descarte:
