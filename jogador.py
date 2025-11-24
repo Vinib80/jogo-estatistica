@@ -9,7 +9,7 @@ class Player:
     TAMANHO_MAO = 4  # Aumentado para 4 (compra 1, depois joga 1)
     MAX_DEFESA = 10
 
-    def __init__(self, nome, x=0, y=0):
+    def __init__(self, nome, x=0, y=0, avatar=None):
         """
         Inicializa um jogador
 
@@ -17,6 +17,7 @@ class Player:
             nome: Nome do jogador (ex: "Jogador", "IA")
             x: Posição X para desenhar o jogador
             y: Posição Y para desenhar o jogador
+            avatar: Imagem (Surface) do avatar do jogador
         """
         self.nome = nome
         self.hp = self.HP_MAXIMO
@@ -24,6 +25,7 @@ class Player:
         self.defesa_ativa = 0  # Pontos de defesa acumulados
         self.x = x
         self.y = y
+        self.avatar = avatar
 
         # Fontes para renderizar
         self.fonte_nome = pygame.font.Font(None, 32)
@@ -141,24 +143,73 @@ class Player:
         """
         return self.hp > 0
 
+    def atualizar(self):
+        """Atualiza o estado do jogador e suas cartas"""
+        for carta in self.mao:
+            carta.atualizar()
+
     def desenhar(self, tela):
         """Desenha as informações do jogador na tela"""
+        # Desenha o avatar se existir
+        offset_x = 0
+        if self.avatar:
+            tela.blit(self.avatar, (self.x, self.y))
+            # Desloca o texto para a direita (assumindo avatar ~100px)
+            offset_x = 110
+
         # Nome do jogador
         cor_nome = (255, 255, 255)
         texto_nome = self.fonte_nome.render(self.nome, True, cor_nome)
-        tela.blit(texto_nome, (self.x, self.y))
+        tela.blit(texto_nome, (self.x + offset_x, self.y))
 
-        # HP (com cor baseada na vida)
-        if self.hp > 14:
-            cor_hp = (50, 200, 80)  # Verde (vida alta)
-        elif self.hp > 7:
-            cor_hp = (255, 200, 50)  # Amarelo (vida média)
+        # --- BARRA DE VIDA MODERNA ---
+        largura_barra = 100
+        altura_barra = 20
+        pos_x_barra = self.x + offset_x
+        pos_y_barra = self.y + 35
+
+        # Cor da vida baseada na porcentagem
+        porcentagem_vida = self.hp / self.HP_MAXIMO
+        if porcentagem_vida > 0.7:
+            cor_vida = (50, 200, 80)  # Verde
+        elif porcentagem_vida > 0.3:
+            cor_vida = (255, 200, 50)  # Amarelo
         else:
-            cor_hp = (220, 50, 50)  # Vermelho (vida baixa)
+            cor_vida = (220, 50, 50)  # Vermelho
 
-        texto_hp = self.fonte_hp.render(
-            f"HP: {self.hp}/{self.HP_MAXIMO}", True, cor_hp)
-        tela.blit(texto_hp, (self.x, self.y + 35))
+        # Fundo da barra (cinza escuro)
+        pygame.draw.rect(tela, (60, 60, 60), (pos_x_barra,
+                         pos_y_barra, largura_barra, altura_barra))
+
+        # Barra de vida atual
+        largura_atual = int(porcentagem_vida * largura_barra)
+        if largura_atual > 0:
+            pygame.draw.rect(tela, cor_vida, (pos_x_barra,
+                             pos_y_barra, largura_atual, altura_barra))
+
+        # Borda da barra
+        pygame.draw.rect(tela, (255, 255, 255), (pos_x_barra,
+                         pos_y_barra, largura_barra, altura_barra), 2)
+
+        # Texto numérico centralizado (menor)
+        fonte_hp_pequena = pygame.font.Font(None, 20)
+        texto_hp = fonte_hp_pequena.render(
+            f"{self.hp}/{self.HP_MAXIMO}", True, (255, 255, 255))
+        rect_texto = texto_hp.get_rect(
+            center=(pos_x_barra + largura_barra // 2, pos_y_barra + altura_barra // 2))
+        tela.blit(texto_hp, rect_texto)
+
+        # HP (com cor baseada na vida) - ANTIGO (COMENTADO)
+        # if self.hp > 14:
+        #     cor_hp = (50, 200, 80)  # Verde (vida alta)
+        # elif self.hp > 7:
+        #     cor_hp = (255, 200, 50)  # Amarelo (vida média)
+        # else:
+        #     cor_hp = (220, 50, 50)  # Vermelho (vida baixa)
+
+        # texto_hp = self.fonte_hp.render(
+        #     f"HP: {self.hp}/{self.HP_MAXIMO}", True, cor_hp)
+        # tela.blit(texto_hp, (self.x + offset_x, self.y + 35))
 
         # Defesa ativa (se houver)
         if self.defesa_ativa > 0:
@@ -169,9 +220,9 @@ class Player:
 
             texto_defesa = self.fonte_hp.render(
                 f"[DEF: {self.defesa_ativa}]", True, cor_defesa)
-            tela.blit(texto_defesa, (self.x, self.y + 65))
+            tela.blit(texto_defesa, (self.x + offset_x, self.y + 65))
 
-    def desenhar_mao(self, tela, x_inicio, y_inicio, espacamento=120):
+    def desenhar_mao(self, tela, x_inicio, y_inicio, assets=None, espacamento=120):
         """
         Desenha as cartas da mão do jogador
 
@@ -179,11 +230,17 @@ class Player:
             tela: Superfície do Pygame onde desenhar
             x_inicio: Posição X inicial da primeira carta
             y_inicio: Posição Y das cartas
+            assets: Dicionário de imagens (sprites) das cartas
             espacamento: Distância entre cartas
         """
         for i, carta in enumerate(self.mao):
             carta.definir_posicao(x_inicio + (i * espacamento), y_inicio)
-            carta.desenhar(tela)
+
+            imagem = None
+            if assets:
+                imagem = assets.get(carta.tipo)
+
+            carta.desenhar(tela, imagem_sprite=imagem)
 
     def __str__(self):
         """Representação em string do jogador"""

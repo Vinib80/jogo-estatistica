@@ -3,6 +3,7 @@ import pygame
 import sys
 import random
 import logging
+import os
 from carta import Card
 from baralho import Deck
 
@@ -28,6 +29,33 @@ COR_TEXTO = (255, 255, 255)
 # Divisão da Tela (Baseada na resolução virtual)
 LARGURA_JOGO = int(LARGURA_VIRTUAL * 0.65)  # 65% para o jogo
 LARGURA_STATS = LARGURA_VIRTUAL - LARGURA_JOGO  # 35% para estatísticas
+
+
+class Particle:
+    """
+    Representa uma partícula simples para efeitos visuais.
+    """
+
+    def __init__(self, x, y, cor):
+        self.x = x
+        self.y = y
+        self.cor = cor
+        # Velocidade aleatória explosiva
+        self.vx = random.uniform(-5, 5)
+        self.vy = random.uniform(-5, 5)
+        self.vida = random.randint(20, 40)  # Frames de vida
+        self.tamanho = random.randint(3, 6)
+
+    def atualizar(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.vida -= 1
+        self.tamanho = max(0, self.tamanho - 0.1)  # Diminui tamanho
+
+    def desenhar(self, superficie):
+        if self.vida > 0:
+            pygame.draw.rect(superficie, self.cor, (int(self.x), int(
+                self.y), int(self.tamanho), int(self.tamanho)))
 
 
 class FloatingText:
@@ -99,6 +127,47 @@ class JogoDuelo:
         # Fonte para textos
         self.fonte_titulo = pygame.font.Font(None, 36)
         self.fonte_texto = pygame.font.Font(None, 24)
+        # Fonte menor para mensagens de feedback
+        self.fonte_mensagem = pygame.font.Font(None, 22)
+
+        # Carregamento de Assets
+        self.assets = {}
+        ASSETS_DIR = "assets"
+
+        cartas_files = {
+            Card.ATAQUE: "carta_Ataque.png",
+            Card.DEFESA: "carta_Defesa.png",
+            Card.CURA: "carta_Cura.png"
+        }
+
+        for tipo, filename in cartas_files.items():
+            path = os.path.join(ASSETS_DIR, filename)
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                img = pygame.transform.scale(img, (Card.LARGURA, Card.ALTURA))
+                self.assets[tipo] = img
+                logging.info(f"Asset carregado: {filename}")
+            except Exception as e:
+                logging.warning(f"Falha ao carregar asset {filename}: {e}")
+                self.assets[tipo] = None
+
+        # Carregar Avatares
+        avatars_files = {
+            "avatar_ia": "avatar_ia.png",
+            "avatar_player": "avatar_player.png"
+        }
+
+        for nome, filename in avatars_files.items():
+            path = os.path.join(ASSETS_DIR, filename)
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                # Tamanho fixo para avatares
+                img = pygame.transform.scale(img, (100, 100))
+                self.assets[nome] = img
+                logging.info(f"Avatar carregado: {filename}")
+            except Exception as e:
+                logging.warning(f"Falha ao carregar avatar {filename}: {e}")
+                self.assets[nome] = None
 
         # Baralho do jogo
         self.deck = Deck()
@@ -110,8 +179,9 @@ class JogoDuelo:
                 self.deck.historico_cartas.append(Card.ATAQUE)
 
         # Jogadores (posições fixas na resolução virtual)
-        self.ia = Player("IA", 50, 80)
-        self.jogador = Player("VOCÊ", 50, 500)  # 500 é fixo na altura 600
+        self.ia = Player("IA", 50, 80, avatar=self.assets.get("avatar_ia"))
+        self.jogador = Player("VOCÊ", 50, 500, avatar=self.assets.get(
+            "avatar_player"))  # 500 é fixo na altura 600
 
         # Distribuir cartas iniciais (3 para cada)
         for _ in range(3):
@@ -137,7 +207,15 @@ class JogoDuelo:
 
         # Efeitos Visuais
         self.textos_flutuantes = []
+        self.particulas = []  # Lista de partículas
+        self.cartas_animando_descarte = []  # Lista de cartas sendo jogadas na mesa
         self.flash_dano_timer = 0
+        self.shake_timer = 0  # Timer para o efeito de screen shake
+
+    def gerar_particulas_dano(self, x, y, cor):
+        """Gera uma explosão de partículas na posição especificada"""
+        for _ in range(15):  # 15 a 20 partículas
+            self.particulas.append(Particle(x, y, cor))
 
     def adicionar_texto_flutuante(self, texto, x, y, cor):
         """Adiciona um texto flutuante à lista"""
@@ -185,6 +263,28 @@ class JogoDuelo:
 
     def atualizar(self):
         """Atualiza a lógica do jogo"""
+        # Atualiza animações dos jogadores
+        self.jogador.atualizar()
+        self.ia.atualizar()
+
+        # Atualiza cartas sendo jogadas (animação para o centro)
+        for item in self.cartas_animando_descarte[:]:
+            carta = item['carta']
+            carta.atualizar()
+
+            # Verifica se chegou ao destino (centro)
+            distancia = ((carta.x - carta.target_x)**2 +
+                         (carta.y - carta.target_y)**2)**0.5
+            if distancia < 5:
+                # Chegou ao destino: Aplica efeito e descarta
+                self.aplicar_efeito_carta(carta, item['origem'], item['alvo'])
+                self.deck.adicionar_ao_descarte(carta)
+                self.cartas_animando_descarte.remove(item)
+
+                # Executa callback de finalização (passar turno, etc)
+                if item.get('callback'):
+                    item['callback']()
+
         # Verifica se alguém morreu
         if not self.jogador.esta_vivo():
             self.mensagem = "VOCÊ PERDEU! A IA venceu!"
@@ -202,10 +302,19 @@ class JogoDuelo:
         if self.flash_dano_timer > 0:
             self.flash_dano_timer -= 1
 
+        if self.shake_timer > 0:
+            self.shake_timer -= 1
+
         for texto in self.textos_flutuantes[:]:
             texto.atualizar()
             if texto.vida <= 0:
                 self.textos_flutuantes.remove(texto)
+
+        # Atualiza partículas
+        for particula in self.particulas[:]:
+            particula.atualizar()
+            if particula.vida <= 0:
+                self.particulas.remove(particula)
 
         # Verifica se é hora da IA jogar
         if self.aguardando_ia:
@@ -249,25 +358,43 @@ class JogoDuelo:
         """Jogador joga uma carta"""
         carta = self.jogador.jogar_carta(indice)
         if carta:
-            # Adiciona ao descarte
-            self.deck.adicionar_ao_descarte(carta)
+            # Define destino para o centro da mesa
+            centro_x = LARGURA_JOGO // 2 - Card.LARGURA // 2
+            centro_y = ALTURA_VIRTUAL // 2 - Card.ALTURA // 2
+            carta.definir_posicao(centro_x, centro_y)
 
-            # Aplica o efeito da carta
-            self.aplicar_efeito_carta(carta, self.jogador, self.ia)
+            # Adiciona à lista de animação
+            self.cartas_animando_descarte.append({
+                'carta': carta,
+                'origem': self.jogador,
+                'alvo': self.ia,
+                'callback': self.finalizar_turno_jogador
+            })
 
-            # Texto flutuante de ação
+            # Bloqueia input do jogador durante animação
+            self.fase_turno = "animando"
+
+            # Texto flutuante de ação imediata
             cor_texto_flutuante = (255, 255, 50)  # Amarelo
             self.adicionar_texto_flutuante(
                 f"Jogou {carta.tipo}!",
                 self.jogador.x + 20, self.jogador.y - 40, cor_texto_flutuante)
 
-            # Passa o turno para a IA
-            self.passar_turno()
+    def finalizar_turno_jogador(self):
+        """Finaliza o turno do jogador após a animação"""
+        # Passa o turno para a IA
+        self.passar_turno()
 
-            # Agenda o turno da IA
-            self.aguardando_ia = True
-            self.estado_ia = "IA_COMPRAR"
-            self.tempo_espera_ia = pygame.time.get_ticks() + 500
+        # Agenda o turno da IA
+        self.aguardando_ia = True
+        self.estado_ia = "IA_COMPRAR"
+        self.tempo_espera_ia = pygame.time.get_ticks() + 500
+
+    def finalizar_jogada_ia(self):
+        """Finaliza a jogada da IA após a animação"""
+        # Próximo estado: Finalizar (após 1500ms = 1.5s)
+        self.estado_ia = "IA_FINALIZAR"
+        self.tempo_espera_ia = pygame.time.get_ticks() + 1500
 
     def aplicar_efeito_carta(self, carta, jogador_ativo, oponente):
         """Aplica o efeito de uma carta"""
@@ -281,9 +408,15 @@ class JogoDuelo:
             self.adicionar_texto_flutuante(
                 f"-{dano_real} HP", oponente.x + 20, oponente.y - 20, (255, 50, 50))
 
+            # Visual: Partículas de dano
+            self.gerar_particulas_dano(
+                # Vermelho sangue
+                oponente.x + 50, oponente.y + 50, (255, 50, 50))
+
             # Visual: Flash de tela se houve dano
             if dano_real > 0:
                 self.flash_dano_timer = 10
+                self.shake_timer = 10  # Inicia o screen shake
 
         elif carta.tipo == Card.DEFESA:
             defesa = carta.valores[Card.DEFESA]
@@ -333,15 +466,21 @@ class JogoDuelo:
                 carta = self.ia.jogar_carta(indice)
 
                 if carta:
-                    # Adiciona ao descarte
-                    self.deck.adicionar_ao_descarte(carta)
+                    # Define destino para o centro da mesa
+                    centro_x = LARGURA_JOGO // 2 - Card.LARGURA // 2
+                    centro_y = ALTURA_VIRTUAL // 2 - Card.ALTURA // 2
+                    carta.definir_posicao(centro_x, centro_y)
 
-                    # Aplica o efeito
-                    self.aplicar_efeito_carta(carta, self.ia, self.jogador)
+                    # Adiciona à lista de animação
+                    self.cartas_animando_descarte.append({
+                        'carta': carta,
+                        'origem': self.ia,
+                        'alvo': self.jogador,
+                        'callback': self.finalizar_jogada_ia
+                    })
 
-            # Próximo estado: Finalizar (após 1500ms = 1.5s)
-            self.estado_ia = "IA_FINALIZAR"
-            self.tempo_espera_ia = pygame.time.get_ticks() + 1500
+                    # Muda estado para aguardar animação
+                    self.estado_ia = "IA_ANIMANDO"
 
         elif self.estado_ia == "IA_FINALIZAR":
             # Volta para o turno do jogador
@@ -359,8 +498,9 @@ class JogoDuelo:
         self.deck.resetar()
 
         # Reseta os Jogadores (HP máximo, mão vazia, defesa 0)
-        self.ia = Player("IA", 50, 80)
-        self.jogador = Player("VOCÊ", 50, 500)
+        self.ia = Player("IA", 50, 80, avatar=self.assets.get("avatar_ia"))
+        self.jogador = Player(
+            "VOCÊ", 50, 500, avatar=self.assets.get("avatar_player"))
 
         # Distribuir cartas iniciais (3 para cada)
         for _ in range(3):
@@ -424,11 +564,11 @@ class JogoDuelo:
             "CAMPO DE BATALHA", True, COR_TEXTO)
         self.superficie.blit(texto_jogo, (area_jogo.x + 20, area_jogo.y + 15))
 
-        # Mensagem de feedback do jogo
-        texto_msg = self.fonte_texto.render(
+        # Mensagem de feedback do jogo (Reposicionada para o topo e reduzida)
+        texto_msg = self.fonte_mensagem.render(
             self.mensagem, True, self.cor_mensagem)
         msg_rect = texto_msg.get_rect(
-            center=(area_jogo.centerx, area_jogo.centery))
+            midtop=(area_jogo.centerx, area_jogo.y + 60))
         self.superficie.blit(texto_msg, msg_rect)
 
         # Área de Estatísticas (Direita)
@@ -607,12 +747,23 @@ class JogoDuelo:
         self.jogador.desenhar(self.superficie)
 
         # Desenha as mãos dos jogadores
-        self.ia.desenhar_mao(self.superficie, 150, 150)
-        self.jogador.desenhar_mao(self.superficie, 150, 380)
+        # Ajustado Y para não cobrir informações (IA: 180, Jogador: 340)
+        self.ia.desenhar_mao(self.superficie, 150, 180, self.assets)
+        self.jogador.desenhar_mao(self.superficie, 150, 340, self.assets)
+
+        # Desenha cartas em animação (jogadas na mesa)
+        for item in self.cartas_animando_descarte:
+            carta = item['carta']
+            imagem = self.assets.get(carta.tipo)
+            carta.desenhar(self.superficie, imagem_sprite=imagem)
 
         # Desenha textos flutuantes
         for texto in self.textos_flutuantes:
             texto.desenhar(self.superficie, self.fonte_titulo)
+
+        # Desenha partículas
+        for particula in self.particulas:
+            particula.desenhar(self.superficie)
 
         # Flash de dano
         if self.flash_dano_timer > 0:
@@ -628,7 +779,15 @@ class JogoDuelo:
         # Escala a superfície virtual para o tamanho da janela
         scaled_surface = pygame.transform.smoothscale(
             self.superficie, self.tela.get_size())
-        self.tela.blit(scaled_surface, (0, 0))
+
+        # Aplica Screen Shake
+        offset_x = 0
+        offset_y = 0
+        if self.shake_timer > 0:
+            offset_x = random.randint(-5, 5)
+            offset_y = random.randint(-5, 5)
+
+        self.tela.blit(scaled_surface, (offset_x, offset_y))
 
         pygame.display.flip()
 
