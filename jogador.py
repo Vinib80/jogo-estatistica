@@ -162,17 +162,54 @@ class Player:
         texto_nome = self.fonte_nome.render(self.nome, True, cor_nome)
         tela.blit(texto_nome, (self.x + offset_x, self.y))
 
-        # HP (com cor baseada na vida)
-        if self.hp > 14:
-            cor_hp = (50, 200, 80)  # Verde (vida alta)
-        elif self.hp > 7:
-            cor_hp = (255, 200, 50)  # Amarelo (vida média)
-        else:
-            cor_hp = (220, 50, 50)  # Vermelho (vida baixa)
+        # --- BARRA DE VIDA MODERNA ---
+        largura_barra = 100
+        altura_barra = 20
+        pos_x_barra = self.x + offset_x
+        pos_y_barra = self.y + 35
 
-        texto_hp = self.fonte_hp.render(
-            f"HP: {self.hp}/{self.HP_MAXIMO}", True, cor_hp)
-        tela.blit(texto_hp, (self.x + offset_x, self.y + 35))
+        # Cor da vida baseada na porcentagem
+        porcentagem_vida = self.hp / self.HP_MAXIMO
+        if porcentagem_vida > 0.7:
+            cor_vida = (50, 200, 80)  # Verde
+        elif porcentagem_vida > 0.3:
+            cor_vida = (255, 200, 50)  # Amarelo
+        else:
+            cor_vida = (220, 50, 50)  # Vermelho
+
+        # Fundo da barra (cinza escuro)
+        pygame.draw.rect(tela, (60, 60, 60), (pos_x_barra,
+                         pos_y_barra, largura_barra, altura_barra))
+
+        # Barra de vida atual
+        largura_atual = int(porcentagem_vida * largura_barra)
+        if largura_atual > 0:
+            pygame.draw.rect(tela, cor_vida, (pos_x_barra,
+                             pos_y_barra, largura_atual, altura_barra))
+
+        # Borda da barra
+        pygame.draw.rect(tela, (255, 255, 255), (pos_x_barra,
+                         pos_y_barra, largura_barra, altura_barra), 2)
+
+        # Texto numérico centralizado (menor)
+        fonte_hp_pequena = pygame.font.Font(None, 20)
+        texto_hp = fonte_hp_pequena.render(
+            f"{self.hp}/{self.HP_MAXIMO}", True, (255, 255, 255))
+        rect_texto = texto_hp.get_rect(
+            center=(pos_x_barra + largura_barra // 2, pos_y_barra + altura_barra // 2))
+        tela.blit(texto_hp, rect_texto)
+
+        # HP (com cor baseada na vida) - ANTIGO (COMENTADO)
+        # if self.hp > 14:
+        #     cor_hp = (50, 200, 80)  # Verde (vida alta)
+        # elif self.hp > 7:
+        #     cor_hp = (255, 200, 50)  # Amarelo (vida média)
+        # else:
+        #     cor_hp = (220, 50, 50)  # Vermelho (vida baixa)
+
+        # texto_hp = self.fonte_hp.render(
+        #     f"HP: {self.hp}/{self.HP_MAXIMO}", True, cor_hp)
+        # tela.blit(texto_hp, (self.x + offset_x, self.y + 35))
 
         # Defesa ativa (se houver)
         if self.defesa_ativa > 0:
