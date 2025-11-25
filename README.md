@@ -82,19 +82,37 @@ O projeto inclui um script de validação (`simulacao_monte_carlo.py`) que roda 
     cd jogo-estatistica
     ```
 
-2.  **Instale as dependências:**
+2.  **Crie um ambiente virtual:**
+
+    ```bash
+    python -m venv venv
+    ```
+
+3.  **Ative o ambiente virtual:**
+
+    * **Linux/Mac:**
+      ```bash
+      source venv/bin/activate
+      ```
+    
+    * **Windows:**
+      ```bash
+      venv\Scripts\activate
+      ```
+
+4.  **Instale as dependências:**
 
     ```bash
     pip install pygame
     ```
 
-3.  **Execute o Jogo:**
+5.  **Execute o Jogo:**
 
     ```bash
     python main.py
     ```
 
-4.  **Execute a Simulação Estatística (Opcional):**
+6.  **Execute a Simulação Estatística (Opcional):**
 
     ```bash
     python simulacao_monte_carlo.py
