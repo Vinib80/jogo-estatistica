@@ -6,12 +6,6 @@ Projeto desenvolvido para a disciplina de Estatística do Prof. Guilherme Pereir
 
 -----
 
-## 📸 Screenshots
-
-*(Espaço reservado para colocar prints do jogo: uma mostrando o campo de batalha e outra focando no gráfico lateral)*
-
------
-
 ## 🎯 Objetivo do Projeto
 
 O objetivo principal não é apenas vencer o oponente, mas observar como a aleatoriedade se comporta ao longo do tempo. O jogo possui uma tela dividida (Split Screen):
@@ -75,12 +69,21 @@ O projeto inclui um script de validação (`simulacao_monte_carlo.py`) que roda 
 
 ### Passo a Passo
 
-1.  **Clone o repositório:**
+1.  **Obtenha o projeto:**
 
-    ```bash
-    git clone https://github.com/Vinib80/jogo-estatistica.git
-    cd jogo-estatistica
-    ```
+    * **Opção 1 - Clone o repositório (recomendado):**
+      ```bash
+      git clone https://github.com/Vinib80/jogo-estatistica.git
+      cd jogo-estatistica
+      ```
+    
+    * **Opção 2 - Download ZIP:**
+      * Baixe o arquivo ZIP do repositório.
+      * Extraia o conteúdo em uma pasta de sua preferência.
+      * Abra o terminal/prompt de comando e navegue até a pasta extraída:
+        ```bash
+        cd caminho/para/jogo-estatistica
+        ```
 
 2.  **Crie um ambiente virtual:**
 
