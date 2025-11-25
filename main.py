@@ -135,9 +135,9 @@ class JogoDuelo:
         ASSETS_DIR = "assets"
 
         cartas_files = {
-            Card.ATAQUE: "carta_Ataque.png",
-            Card.DEFESA: "carta_Defesa.png",
-            Card.CURA: "carta_Cura.png"
+            Card.ATAQUE: "carta_ataque.png",
+            Card.DEFESA: "carta_defesa.png",
+            Card.CURA: "carta_cura.png"
         }
 
         for tipo, filename in cartas_files.items():
