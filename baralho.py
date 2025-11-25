@@ -49,11 +49,15 @@ class Deck:
         Returns:
             Card: A carta comprada, ou None se o baralho e descarte estiverem vazios
         """
-        if len(self.cartas) == 0 and len(self.descarte) > 0:
-            logging.info("Baralho vazio! Embaralhando descarte...")
-            self.cartas = self.descarte[:]
-            self.descarte = []
-            self.embaralhar()
+        if len(self.cartas) == 0:
+            if len(self.descarte) > 0:
+                logging.info(
+                    f"Baralho vazio! Embaralhando descarte com {len(self.descarte)} cartas...")
+                self.cartas = list(self.descarte)
+                self.descarte = []
+                self.embaralhar()
+            else:
+                return None
 
         if len(self.cartas) > 0:
             carta = self.cartas.pop(0)
