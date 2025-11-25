@@ -88,26 +88,13 @@ O projeto inclui um script de validação (`simulacao_monte_carlo.py`) que roda 
     pip install pygame
     ```
 
-3.  **Configure os Assets (Imagens):**
-    O jogo procura imagens na pasta `assets/`.
-
-      * Execute o script de verificação para garantir que suas imagens estão nomeadas corretamente:
-
-    <!-- end list -->
-
-    ```bash
-    python verificar_assets.py
-    ```
-
-    *(Nota: Se as imagens não existirem, o jogo rodará em "Modo de Compatibilidade", desenhando formas geométricas no lugar dos sprites).*
-
-4.  **Execute o Jogo:**
+3.  **Execute o Jogo:**
 
     ```bash
     python main.py
     ```
 
-5.  **Execute a Simulação Estatística (Opcional):**
+4.  **Execute a Simulação Estatística (Opcional):**
 
     ```bash
     python simulacao_monte_carlo.py
